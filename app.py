@@ -17,10 +17,8 @@ st.title("⚙️ 계과 학점 판독기")
 st.caption("기계공학부 전용 학점 관리 및 졸업 시뮬레이터")
 
 # --- [추가된 기능: 글로벌 데이터 저장소] ---
-# 서버가 켜져 있는 동안 모든 사용자의 데이터를 공유하는 저장소입니다.
 @st.cache_resource
 def get_global_stats():
-    # 학년별로 [전체평점 리스트, 전공평점 리스트]를 저장합니다.
     return {
         "2,3학년": {"overall": [], "major": []},
         "4학년": {"overall": [], "major": []}
@@ -29,7 +27,7 @@ def get_global_stats():
 global_data = get_global_stats()
 # ------------------------------------------
 
-# 2. 데이터 초기화 (내 세션용)
+# 2. 데이터 초기화
 if 'my_courses' not in st.session_state:
     st.session_state.my_courses = []
 
@@ -168,7 +166,7 @@ with c2:
         else:
             st.warning("먼저 과목을 추가하고 성적을 입력해주세요.")
 
-# 평균 계산 및 표시
+# 평균 계산 및 표시 (에러 수정된 부분)
 with st.container():
     st.write(f"#### 🔥 현재까지 집계된 {user_grade} 평균")
     avg_col1, avg_col2 = st.columns(2)
@@ -177,9 +175,9 @@ with st.container():
     avg_overall = sum(grade_list["overall"]) / len(grade_list["overall"]) if grade_list["overall"] else 0
     avg_major = sum(grade_list["major"]) / len(grade_list["major"]) if grade_list["major"] else 0
     
-    with avg_overall_col := avg_col1:
+    with avg_col1:
         st.markdown(f"""<div class='stat-box'><b>전체 평점 평균</b><br><span style='font-size:24px; color:#007bff;'>{avg_overall:.2f}</span></div>""", unsafe_allow_html=True)
-    with avg_major_col := avg_col2:
+    with avg_col2:
         st.markdown(f"""<div class='stat-box'><b>전공 평점 평균</b><br><span style='font-size:24px; color:#28a745;'>{avg_major:.2f}</span></div>""", unsafe_allow_html=True)
     
     st.caption(f"현재 총 {len(grade_list['overall'])}명의 데이터가 반영되어 있습니다.")
