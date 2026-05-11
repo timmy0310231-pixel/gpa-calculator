@@ -16,7 +16,7 @@ st.markdown("""
 st.title("⚙️ 계과 학점 판독기")
 st.caption("기계공학부 전용 학점 관리 및 졸업 시뮬레이터")
 
-# --- [추가된 기능: 글로벌 데이터 저장소] ---
+# --- [글로벌 데이터 저장소] ---
 @st.cache_resource
 def get_global_stats():
     return {
@@ -40,11 +40,27 @@ major_core = ["고체역학", "열역학", "동역학", "유체역학", "기계�
 major_deep = ["재료거동학", "탄성학", "복합재료", "항공우주추진", "자동차공학", "미래모빌리티공학", "생산공학", "기구학", "최적설계", "응용유체역학", "응용고체역학", "소성공학", "윤활공학", "바이오공학입문", "모바일시스템제어", "계측공학", "로봇공학입문", "동적시스템제어", "기계공학도를 위한 인공지능입문", "글로벌캡스톤디자인", "졸업논문연구", "기계시스템수치해석", "공학수치해석"]
 major_lab = ["고역실", "열유실", "진동실", "기설실", "기공실", "종설", "스종설"]
 
-# 3. 사이드바
+# 3. 사이드바 (기존 성적 입력칸 추가됨!)
 with st.sidebar:
     st.header("🎯 목표 설정")
     target_overall = st.number_input("목표 전체 평점", 0.0, 4.5, 4.0, 0.1)
     target_major = st.number_input("목표 전공 평점", 0.0, 4.5, 4.0, 0.1)
+    
+    st.divider()
+    st.header("💾 기존 성적 입력")
+    st.caption("과거 내역을 한 번에 입력하고, 앞으로 들을 과목만 본문에 추가하세요!")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        base_total_crd = st.number_input("총 이수 학점", 0, 150, 0, 1)
+    with c2:
+        base_total_gpa = st.number_input("전체 평점", 0.00, 4.50, 0.00, 0.01)
+        
+    c3, c4 = st.columns(2)
+    with c3:
+        base_major_crd = st.number_input("전공 이수 학점", 0, 150, 0, 1)
+    with c4:
+        base_major_gpa = st.number_input("전공 평점", 0.00, 4.50, 0.00, 0.01)
     
     st.divider()
     st.header("➕ 비전공/기타 추가")
@@ -55,26 +71,32 @@ with st.sidebar:
             st.session_state.my_courses.append({"name": non_major_name, "type": "비전공", "credit": non_major_crd, "grade": "A+"})
             st.rerun()
 
-# 4. 학점 계산 로직
+# 4. 학점 계산 로직 (기존 성적을 베이스로 더하도록 수정됨!)
 def calculate_stats():
-    earned_total_crd = 0
-    gpa_total_crd = 0
-    total_pts = 0
-    major_earned_crd = 0
-    major_gpa_crd = 0
-    major_pts = 0
+    # 사이드바에서 입력한 '기존 성적'을 기본값으로 세팅
+    earned_total_crd = base_total_crd
+    gpa_total_crd = base_total_crd
+    total_pts = base_total_crd * base_total_gpa
     
+    major_earned_crd = base_major_crd
+    major_gpa_crd = base_major_crd
+    major_pts = base_major_crd * base_major_gpa
+    
+    # 그 위에 새로 추가한 과목들을 더함
     for c in st.session_state.my_courses:
         crd = c['credit']
         grd = c['grade']
         is_major = c['type'] in ["전공코어", "전공심화", "실험실습", "특수전공"]
+        
         if grd != "F":
             earned_total_crd += crd
             if is_major: major_earned_crd += crd
+            
         if grd != "P":
             pts = grade_points[grd]
             gpa_total_crd += crd
             total_pts += (crd * pts)
+            
             if is_major:
                 major_gpa_crd += crd
                 major_pts += (crd * pts)
@@ -131,10 +153,10 @@ with tab4:
 
 # 6. 수강 목록 및 성적 입력
 st.divider()
-st.subheader("📋 내 수강 목록 (성적을 입력하세요)")
+st.subheader("📋 내 수강 목록 (추가로 시뮬레이션 할 과목)")
 
 if not st.session_state.my_courses:
-    st.info("위의 과목 버튼을 눌러 수강한 과목을 추가하세요.")
+    st.info("위의 과목 버튼을 눌러 앞으로 들을 과목들을 추가해보세요.")
 else:
     for i, course in enumerate(st.session_state.my_courses):
         cols = st.columns([4, 2, 2, 2, 1])
@@ -152,10 +174,7 @@ else:
 # 7. 계평 (계과 평점 통계) 기능
 st.divider()
 st.subheader("📊 계평 (계과 평점 통계)")
-
-# --- 수정한 부분: 안내 문구 추가 ---
-st.info("📌 **25-2학기까지의 학점을 등록해 주세요. 정확한 정보를 위해 1인당 한 번씩만!**")
-# -----------------------------------
+st.info("📌 **25-2학기까지의 학점을 등록해 주세요. 정확한 정보를 위해 1인당 한 번만 해주세요.**")
 
 c1, c2, c3 = st.columns([2, 2, 4])
 with c1:
@@ -167,7 +186,7 @@ with c2:
             global_data[user_grade]["major"].append(major_gpa)
             st.success("등록 완료!")
         else:
-            st.warning("먼저 과목을 추가하고 성적을 입력해주세요.")
+            st.warning("먼저 기존 성적을 입력하거나 과목을 추가해주세요.")
 
 # 평균 계산 및 표시
 with st.container():
